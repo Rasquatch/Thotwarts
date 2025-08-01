@@ -149,6 +149,42 @@
             display: flex;
             flex-direction: column;
         }
+        
+        /* Alert indicators */
+        .weather-card.severe {
+            border: 2px solid #ff4444;
+            box-shadow: 0 0 15px rgba(255, 0, 0, 0.3);
+        }
+        
+        .weather-card.caution {
+            border: 2px solid #ffcc00;
+            box-shadow: 0 0 15px rgba(255, 204, 0, 0.3);
+        }
+        
+        /* Small corner indicator */
+        .weather-card::after {
+            content: '';
+            position: absolute;
+            top: 10px;
+            right: 10px;
+            width: 10px;
+            height: 10px;
+            border-radius: 50%;
+            opacity: 0;
+            transition: opacity 0.3s ease;
+        }
+        
+        .weather-card.severe::after {
+            background: #ff4444;
+            opacity: 1;
+            box-shadow: 0 0 10px #ff4444;
+        }
+        
+        .weather-card.caution::after {
+            background: #ffcc00;
+            opacity: 1;
+            box-shadow: 0 0 10px #ffcc00;
+        }
 
         .weather-card:hover {
             transform: translateY(-10px) scale(1.02);
@@ -709,11 +745,38 @@
 
         // Get temperature-based styling class
         function getTempClass(temp) {
-            if (temp >= 85) return 'temp-hot';
-            if (temp >= 70) return 'temp-warm';
-            if (temp >= 50) return 'temp-mild';
-            if (temp >= 32) return 'temp-cool';
-            return 'temp-cold';
+            if (temp >= 80) return 'hot';
+            if (temp <= 32) return 'cold';
+            if (temp >= 75) return 'warm';
+            if (temp <= 45) return 'chilly';
+            return 'mild';
+        }
+        
+        // Get alert level based on weather conditions
+        function getAlertLevel(data) {
+            const temp = data.main.temp;
+            const condition = data.weather[0].description.toLowerCase();
+            const windSpeed = data.wind?.speed || 0;
+
+            // SEVERE: Really bad conditions
+            if (temp > 100 || temp < 10 || 
+                condition.includes('tornado') || 
+                condition.includes('hurricane') ||
+                windSpeed > 40) {
+                return 'severe';
+            }
+            
+            // CAUTION: Worth noting
+            if (temp > 90 || temp < 25 || 
+                condition.includes('snow') || 
+                condition.includes('ice') || 
+                condition.includes('hail') || 
+                condition.includes('heavy') || 
+                windSpeed > 25) {
+                return 'caution';
+            }
+            
+            return '';
         }
 
         // Format weather card HTML
@@ -725,6 +788,7 @@
             const description = data.weather[0].description;
             const icon = getWeatherIcon(condition);
             const tempClass = getTempClass(data.main.temp); // Use original temp for class
+            const alertLevel = getAlertLevel(data);
             
             // Get high/low temperatures - use forecast data if available, otherwise fall back to current day min/max
             const high = data.todayHigh !== undefined ? 
@@ -750,7 +814,7 @@
             const owmLink = `https://openweathermap.org/city/${data.id || ''}`;
             
             return `
-                <div class="weather-card ${tempClass}" 
+                <div class="weather-card ${tempClass} ${alertLevel}" 
                      data-temp-f="${tempF}" 
                      data-feels-like-f="${feelsLikeF}"
                      data-high-f="${highF}"
